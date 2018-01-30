@@ -1,6 +1,8 @@
 unit mpegts_info;
 
+{$ifdef FPC}
 {$mode objfpc}{$H+}
+{$endif}
 
 interface
 
@@ -252,7 +254,7 @@ begin
   if len > 0 then
   begin
     SetLength(Result, len);
-    Move((@Buf + Pos)^, PChar(Result)^, len);
+    Move(TByteArray(Buf)[Pos], PChar(Result)^, len);
     Inc(Pos, len);
   end;
 end;
@@ -448,7 +450,7 @@ begin
       Write(Format(' ext_id=%u version=%u number=%u last_number=%u', [h.ExtId, h.Version, h.Num, h.LastNum]));
       DumpFlag(h.NextFlag, ' next');
     end;
-    WriteLn();
+    WriteLn('');
   end;
 
   Result := True;
@@ -507,7 +509,7 @@ begin
   Write(Format('  PMT pcr_pid=0x%04.4x', [t.PcrPid]));
   if (t.InfoLen > 0) then
     Write(Format(' info_len=%u', [t.InfoLen]));
-  WriteLn();
+  WriteLn('');
 
   sect_end := t.h.LenPos + t.h.Len - 4; // section length - CRC32
   while ((APos < PKT_SIZE) and (APos < sect_end)) do
@@ -541,7 +543,7 @@ begin
     Write(Format('  PMT elementary stream type=0x%02.2x pid=0x%04.4x', [pr^.EsType, pr^.EsPid]));
     if (pr^.DescLen > 0) then
       Write(Format(' desc_len=%u', [pr^.DescLen]));
-    WriteLn();
+    WriteLn('');
     WriteLn('    ' + GetStreamIdName(pr^.EsType));
 
     if (pr^.DescLen <= (PKT_SIZE - APos)) then
@@ -600,7 +602,7 @@ begin
     DumpFlag(sv.Schedule, ' schedule');
     DumpFlag(sv.Follow, ' follow');
     DumpFlag(sv.FreeCaMode, ' free_ca_mode');
-    WriteLn();
+    WriteLn('');
 
     if (sv.DescrLen <= (PKT_SIZE - APos)) then
     begin
@@ -664,7 +666,7 @@ begin
   // dump PES header
   if _verbose then
   begin
-    Write(Format('  PES stream_id=%#x length=%u  ', [pes.StreamId, pes.Len]));
+    Write(Format('  PES stream_id=%x length=%u  ', [pes.StreamId, pes.Len]));
     WriteLn('  ' + GetStreamIdName(pes.StreamId));
   end
   else
@@ -676,10 +678,10 @@ begin
     begin
       if ts.cur_pkt^.af.PcrFlag then
       begin
-        Write(Format('  PCR=%u (%i)', [ts.cur_pkt^.af.PCR, (ts.cur_pkt^.af.PCR - ts.LastPcr)]));
+        Write(Format('  PCR=%u (%d)', [ts.cur_pkt^.af.PCR, (ts.cur_pkt^.af.PCR - ts.LastPcr)]));
         if (ts.cur_pkt^.af.PCRExt <> 0) then
           Write(Format(' pcr_ext=%u', [ts.cur_pkt^.af.PCRExt]));
-        WriteLn();
+        WriteLn('');
       end;
     end;
   end;
@@ -724,7 +726,7 @@ begin
       DumpFlag(pes.AddCopyInfFlag, ' add_copy_inf');
       DumpFlag(pes.CrcFlag, ' CRC');
       DumpFlag(pes.ExtFlag, ' ext');
-      WriteLn();
+      WriteLn('');
     end;
 
     pes.Pts := 0;
@@ -740,11 +742,11 @@ begin
 
       if (ts.cur_pid <> nil) then
       begin
-        Write(Format(' (%i)', [(pes.Pts - ts.cur_pid^.LastPTS)]));
+        Write(Format(' (%d)', [(pes.Pts - ts.cur_pid^.LastPTS)]));
         ts.cur_pid^.LastPTS := pes.Pts;
       end;
       if (not _verbose) then
-        WriteLn();
+        WriteLn('');
 
       if (pes.DtsFlag) then // DTS
       begin
@@ -755,14 +757,14 @@ begin
           Write(Format('  DTS=%u', [pes.Dts]));
         if (ts.cur_pid <> nil) then
         begin
-          Write(Format(' (%i)', [(pes.Dts - ts.cur_pid^.LastDTS)]));
+          Write(Format(' (%d)', [(pes.Dts - ts.cur_pid^.LastDTS)]));
           ts.cur_pid^.LastDTS := pes.Dts;
         end;
         if (not _verbose) then
-          WriteLn();
+          WriteLn('');
       end;
       if (_verbose) then
-        WriteLn();
+        WriteLn('');
     end;
 
     // other PES header data
@@ -784,7 +786,7 @@ begin
         // dump second 4cc
         Write(Format(' 0x%08.8x', [Get32(ABuf, APos)]));
       end;
-      WriteLn();
+      WriteLn('');
     end;
   end;
   Result := True;
@@ -851,7 +853,7 @@ begin
     DumpFlag((pkt.AdaptField > 1), ' adapt');
     DumpFlag(((pkt.AdaptField and $1) <> 0), ' payload');
     Write('    ' + GetPidDescription(pkt.Pid));
-    WriteLn();
+    WriteLn('');
   end;
 
   // adaptation field (optional)
@@ -890,7 +892,7 @@ begin
       af.PCR := ParsePcr(ABuf, iPos, af.PCRExt);
       if (_verbose) then
       begin
-        Write(Format(' PCR=%u (%i)', [af.PCR, (af.PCR - ts.LastPcr)]));
+        Write(Format(' PCR=%u (%d)', [af.PCR, (af.PCR - ts.LastPcr)]));
         if (af.PCRExt <> 0) then
           Write(Format(' pcr_ext=%u', [af.PCRExt]));
       end;
@@ -911,11 +913,11 @@ begin
     begin
       af.Splice := Get8(ABuf, iPos);
       if (_verbose) then
-        Write(Format(' splice_count=%i', [af.Splice]));
+        Write(Format(' splice_count=%d', [af.Splice]));
     end;
 
     if (_verbose) then
-      WriteLn();
+      WriteLn('');
 
     iPos := 4 + 1 + af.Len; // skip after adaptation field
   end;
@@ -974,7 +976,7 @@ begin
         begin
           Write(Format('  payload header=0x%02.2x  ', [tmp16]));
           DumpBits16(tmp16);
-          WriteLn();
+          WriteLn('');
         end;
       end;
     end;
@@ -987,30 +989,50 @@ end;
 function ParseStream(AStream: TStream): Boolean;
 var
   ir, i: Integer;
+  PktEndPos: Integer;
   pkt: TMpegTsPacket;
   pkt_buf: TByteArray;
 begin
   Result := False;
   if not Assigned(AStream) then Exit;
 
+  PktEndPos := 0;
   ts.LastPcr := 0;
   ts.PidsCount := 0;
-  ir := AStream.Read(ts.buf, MAX_BUFFER);
-  if (ir <> MAX_BUFFER) then
-    Exit;
 
-  i := 0;
-  while i < ir do
+  while True do
   begin
-    if (ts.buf[i] = $47) then
-    begin
-      Move(ts.buf[i], pkt_buf, SizeOf(pkt_buf));
-      Inc(i, SizeOf(pkt_buf)-1);
-      ParsePkt(pkt_buf, pkt);
+    ir := AStream.Read(ts.buf[PktEndPos], MAX_BUFFER-PktEndPos);
+    if (ir <> (MAX_BUFFER-PktEndPos)) then
+      Exit;
 
-      Flush(StdOut);
+    i := 0;
+    while i < ir do
+    begin
+      if (ts.buf[i] = $47) then
+      begin
+        if (i + PKT_SIZE) < MAX_BUFFER then
+        begin
+          PktEndPos := i + PKT_SIZE;
+          Move(ts.buf[i], pkt_buf, PKT_SIZE);
+          Inc(i, PKT_SIZE-1);
+          ParsePkt(pkt_buf, pkt);
+
+          {$ifdef FPC}
+          Flush(StdOut);
+          {$else}
+          Flush(Output);
+          {$endif}
+        end;
+      end;
+      Inc(i);
     end;
-    Inc(i);
+
+    if PktEndPos > 0 then
+    begin
+      Move(ts.buf[PktEndPos], ts.buf[0], MAX_BUFFER-PktEndPos);
+      PktEndPos := MAX_BUFFER-PktEndPos;
+    end;
   end;
 end;
 
